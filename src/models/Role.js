@@ -1,11 +1,10 @@
+// src/models/Role.js
 import mongoose from "mongoose";
 
-const roleSchema = new mongoose.Schema(
-  {
-    role: { type: String, required: true, unique: true },
-    definition: { type: String, required: true },
-  },
-  { timestamps: true }
-);
+const RoleSchema = new mongoose.Schema({
+  role: { type: String, unique: true },
+  definition: String,
+});
 
-export default mongoose.models.Role || mongoose.model("Role", roleSchema);
+// SAFE REGISTRATION
+export const Role = mongoose.models.Role || mongoose.model("Role", RoleSchema);

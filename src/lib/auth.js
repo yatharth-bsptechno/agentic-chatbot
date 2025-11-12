@@ -2,6 +2,9 @@
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 
+const ADMIN_HASH =
+  "$2a$10$N9qo8uLOickgx2ZMRZoMye8YcJ1X8W6QjfK47P7z2g5pW7p2g6pW6"; // "admin123"
+
 export const authOptions = {
   providers: [
     CredentialsProvider({
@@ -11,45 +14,19 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          console.log("Missing credentials");
-          return null;
-        }
-
-        const email = credentials.email.toLowerCase();
-        const password = credentials.password;
-
-        // HARDCODED ADMIN — REAL HASH OF "admin123"
-        const validHash =
-          "$2b$10$sD93RSG5kTkrhm4Y5iI09.GBvtnStRXSja6jlaCF/MwoGnpTLarGO"; // bcrypt hash of "admin123"
+        if (!credentials?.email || !credentials?.password) return null;
 
         if (
-          email === "admin@yourapp.com" &&
-          bcrypt.compareSync(password, validHash)
+          credentials.email === "admin@yourapp.com" &&
+          bcrypt.compareSync(credentials.password, ADMIN_HASH)
         ) {
-          console.log("ADMIN LOGIN SUCCESS");
-          return {
-            id: "1",
-            name: "Admin",
-            email: "admin@yourapp.com",
-          };
+          return { id: "1", name: "Admin", email: "admin@yourapp.com" };
         }
-
-        console.log("Invalid login attempt:", { email, valid: false });
         return null;
       },
     }),
   ],
-  pages: {
-    signIn: "/admin/login",
-    error: "/admin/login", // prevent redirect loop on error
-  },
+  pages: { signIn: "/admin/login", error: "/admin/login" },
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
-  callbacks: {
-    session: ({ session, token }) => {
-      session.user.id = token.sub;
-      return session;
-    },
-  },
 };

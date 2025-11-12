@@ -1,25 +1,40 @@
-import { connectDB } from "@/lib/db.js";
-import { User } from "@/models/User.js";
+// src/app/api/admin/users/[id]/tag/route.js
+import { connectDB } from "@/lib/db";
+import { User } from "@/models/User";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function POST(req, { params }) {
-  await connectDB();
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const { id } = params;
   const { role } = await req.json();
-  if (!role)
-    return new Response(JSON.stringify({ error: "role required" }), {
-      status: 400,
+
+  if (
+    !role ||
+    ![
+      "customer",
+      "distributor",
+      "partner",
+      "service_agent",
+      "unknown",
+    ].includes(role)
+  ) {
+    return new Response("Invalid role", { status: 400 });
+  }
+
+  try {
+    await connectDB();
+    await User.findByIdAndUpdate(id, {
+      finalRole: role,
+      roleInferenceReason: "Manually tagged by admin",
     });
-
-  const user = await User.findById(id);
-  if (!user)
-    return new Response(JSON.stringify({ error: "User not found" }), {
-      status: 404,
-    });
-
-  user.manualRole = role;
-  user.finalRole = role;
-  user.roleInferenceReason = "Manually tagged from backend";
-  await user.save();
-
-  return Response.json({ ok: true });
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
+  } catch (err) {
+    console.error(err);
+    return new Response("Server error", { status: 500 });
+  }
 }
